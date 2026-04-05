@@ -1,0 +1,27 @@
+[project]
+name = "cara"
+version = "0.1.0"
+description = "Helpful Telegram assistant for channel link management"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "telethon>=1.42.0",
+    "python-dotenv>=1.0.0",
+    "cryptg>=0.4",
+    "langchain>=1.2.0",
+    "langgraph>=1.1.0",
+    "langchain-core>=0.3.0",
+    # toon-format: Token-Oriented Object Notation for structured LLM objects.
+    # PyPI package exists (toon-format) but is currently a namespace reservation only (v0.1.0).
+    # Uncomment once a functional release is available:
+    # "toon-format>=0.2.0",
+]
+
+[project.scripts]
+cara = "cara.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4.0",
+]
