@@ -207,3 +207,6 @@ __marimo__/
 
 # Telegram Session Cache
 *.session
+
+# Script output files
+scripts/output/
