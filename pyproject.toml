@@ -15,6 +15,7 @@ dependencies = [
     # PyPI package exists (toon-format) but is currently a namespace reservation only (v0.1.0).
     # Uncomment once a functional release is available:
     # "toon-format>=0.2.0",
+    "saapi>=0.2",
 ]
 
 [project.scripts]

@@ -1,57 +1,108 @@
 import logging
-import re
 
 from telethon import TelegramClient, events
 
 from cara.config import settings
-from cara.link_service import convert_link
+from cara.link_service import (
+    URL_RE,
+    generate_affiliate_link,
+    is_shopee_link,
+    is_shopee_video_link,
+)
 from cara.state import bot_state
 
 logger = logging.getLogger(__name__)
 
-URL_PATTERN = re.compile(r"https?://\S+")
+
+NOT_A_PRODUCT_LINK = "Need product link to convert!"
+
+
+def _format_sender(sender) -> str:
+    username = getattr(sender, "username", None)
+    handle = f"@{username}" if username else "(no username)"
+    return f"{handle} (id={sender.id})"
+
+
+async def _broadcast_admins(client: TelegramClient, message: str) -> None:
+    for admin_id in settings.admin_list:
+        try:
+            await client.send_message(admin_id, message)
+        except Exception as exc:
+            logger.warning("Failed to notify admin %s: %r", admin_id, exc)
 
 
 def register_handlers(client: TelegramClient):
-    @client.on(events.NewMessage(chats=settings.channel_id))
-    async def handle_channel_message(event: events.NewMessage.Event):
-        urls = URL_PATTERN.findall(event.raw_text)
-        if not urls:
+    @client.on(events.NewMessage(chats=settings.discussion_group_id))
+    async def handle_discussion_message(event: events.NewMessage.Event):
+        sender = await event.get_sender()
+        if sender is None:
+            return
+        if sender.id in settings.admin_list or sender.id in settings.ignore_list:
             return
 
-        sender = await event.get_sender()
-        sender_id = sender.id
-        logger.info("Link detected from user %s in channel.", sender_id)
+        urls = URL_RE.findall(event.raw_text or "")
+        shopee_urls = [u for u in urls if is_shopee_link(u)]
+        if not shopee_urls:
+            return
 
-        for url in urls:
-            converted = await convert_link(url)
-            if converted is None:
-                logger.warning("Link conversion failed for: %s", url)
+        logger.info(
+            "Detected %d Shopee URL(s) from user %s (of %d total).",
+            len(shopee_urls), sender.id, len(urls),
+        )
+
+        entries: list[str] = []
+        for url in shopee_urls:
+            if is_shopee_video_link(url):
+                logger.info("Shopee video link %s — marking as non-product.", url)
+                entries.append(NOT_A_PRODUCT_LINK)
                 continue
+            try:
+                result = generate_affiliate_link(url)
+                entries.append(result["shortLink"])
+            except Exception as exc:
+                logger.info("Shopee link %s failed conversion: %r", url, exc)
+                entries.append(NOT_A_PRODUCT_LINK)
 
-            # Always notify the owner
-            await client.send_message(
-                settings.owner_id,
-                f"Link from user {sender_id}:\n"
-                f"Original: {url}\n"
-                f"Converted: {converted}",
+        if not bot_state.is_active:
+            return
+
+        if len(entries) == 1:
+            reply_text = entries[0]
+        else:
+            reply_text = "\n".join(f"{i}. {entry}" for i, entry in enumerate(entries, 1))
+
+        try:
+            await event.reply(reply_text)
+        except Exception as exc:
+            logger.warning("Failed to reply in-thread: %r", exc)
+            await _broadcast_admins(
+                client,
+                f"Failed to post reply to {_format_sender(sender)}: {exc!r}\n"
+                f"Reply was:\n{reply_text}",
             )
 
-            # Only DM the member when active
-            if bot_state.is_active:
-                await client.send_message(
-                    sender_id,
-                    f"Here's your converted link:\n{converted}",
-                )
+    @client.on(events.NewMessage(pattern=r"^/(on|off)$", incoming=True))
+    async def handle_admin_command(event: events.NewMessage.Event):
+        if not event.is_private:
+            return
+        sender = await event.get_sender()
+        if sender is None or sender.id not in settings.admin_list:
+            return
 
-    @client.on(events.NewMessage(chats=settings.owner_id, pattern=r"^/(on|off)$"))
-    async def handle_owner_command(event: events.NewMessage.Event):
         command = event.raw_text.strip().lower()
         if command == "/off":
             bot_state.is_active = False
-            await event.reply("Cara paused — I'll still track links and notify you, but won't DM members.")
-            logger.info("Owner toggled Cara OFF.")
+            logger.info("Admin %s toggled Cara OFF.", sender.id)
+            await _broadcast_admins(
+                client,
+                f"Cara paused by {_format_sender(sender)} — link tracking continues, "
+                f"but no in-thread replies.",
+            )
         elif command == "/on":
             bot_state.is_active = True
-            await event.reply("Cara resumed — members will receive converted links again.")
-            logger.info("Owner toggled Cara ON.")
+            logger.info("Admin %s toggled Cara ON.", sender.id)
+            await _broadcast_admins(
+                client,
+                f"Cara resumed by {_format_sender(sender)} — members will receive "
+                f"converted links again.",
+            )

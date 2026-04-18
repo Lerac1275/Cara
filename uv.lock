@@ -34,6 +34,7 @@ dependencies = [
     { name = "langchain-core" },
     { name = "langgraph" },
     { name = "python-dotenv" },
+    { name = "saapi" },
     { name = "telethon" },
 ]
 
@@ -50,6 +51,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=0.3.0" },
     { name = "langgraph", specifier = ">=1.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "saapi", specifier = ">=0.2" },
     { name = "telethon", specifier = ">=1.42.0" },
 ]
 
@@ -800,6 +802,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/88/3d/1364fcde8656962782aa9ea93c92d98682b1ecec2f184e625a965ad3b4a6/ruff-0.15.9-py3-none-win32.whl", hash = "sha256:bde6ff36eaf72b700f32b7196088970bf8fdb2b917b7accd8c371bfc0fd573ec", size = 10583382, upload-time = "2026-04-02T18:17:04.261Z" },
     { url = "https://files.pythonhosted.org/packages/4c/56/5c7084299bd2cacaa07ae63a91c6f4ba66edc08bf28f356b24f6b717c799/ruff-0.15.9-py3-none-win_amd64.whl", hash = "sha256:45a70921b80e1c10cf0b734ef09421f71b5aa11d27404edc89d7e8a69505e43d", size = 11744969, upload-time = "2026-04-02T18:16:59.611Z" },
     { url = "https://files.pythonhosted.org/packages/03/36/76704c4f312257d6dbaae3c959add2a622f63fcca9d864659ce6d8d97d3d/ruff-0.15.9-py3-none-win_arm64.whl", hash = "sha256:0694e601c028fd97dc5c6ee244675bc241aeefced7ef80cd9c6935a871078f53", size = 11005870, upload-time = "2026-04-02T18:17:15.773Z" },
+]
+
+[[package]]
+name = "saapi"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/11/bf786cfade4f3581aaa7c094b93638c591c502988504459bf592e7b2f73b/saapi-0.2.tar.gz", hash = "sha256:3ef7bbd91e09444ca3e8aa6f808244d035c235025c72138b1cca83fb9c3bdf20", size = 13651, upload-time = "2025-06-23T01:41:49.47Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/cc/e52040f27e8e66c10b013768c4f8d4e0957d4709a4c32027237ce7614393/saapi-0.2-py3-none-any.whl", hash = "sha256:00e07664f2fac9ab6d69751f9a35431f060de5dac088eecfa87600e0e7187dac", size = 14495, upload-time = "2025-06-23T01:41:47.908Z" },
 ]
 
 [[package]]

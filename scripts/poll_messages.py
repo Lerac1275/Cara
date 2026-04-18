@@ -18,7 +18,8 @@ from cara.config import settings
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-WRITE_TO_FILE = False  # Set True to save output to scripts/output/<timestamp>.txt
+WRITE_TO_FILE = True  # Set True to save output to scripts/output/<timestamp>.txt
+HOURS=24 # How far back to look
 
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -105,4 +106,4 @@ async def poll_channel(hours: int = 48):
 
 
 if __name__ == "__main__":
-    asyncio.run(poll_channel())
+    asyncio.run(poll_channel(hours=HOURS))
