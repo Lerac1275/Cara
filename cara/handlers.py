@@ -23,7 +23,7 @@ def _format_sender(sender) -> str:
     return f"{handle} (id={sender.id})"
 
 
-async def _broadcast_admins(client: TelegramClient, message: str) -> None:
+async def broadcast_admins(client: TelegramClient, message: str) -> None:
     for admin_id in settings.admin_list:
         try:
             await client.send_message(admin_id, message)
@@ -75,7 +75,7 @@ def register_handlers(client: TelegramClient):
             await event.reply(reply_text)
         except Exception as exc:
             logger.warning("Failed to reply in-thread: %r", exc)
-            await _broadcast_admins(
+            await broadcast_admins(
                 client,
                 f"Failed to post reply to {_format_sender(sender)}: {exc!r}\n"
                 f"Reply was:\n{reply_text}",
@@ -93,7 +93,7 @@ def register_handlers(client: TelegramClient):
         if command == "/off":
             bot_state.is_active = False
             logger.info("Admin %s toggled Cara OFF.", sender.id)
-            await _broadcast_admins(
+            await broadcast_admins(
                 client,
                 f"Cara paused by {_format_sender(sender)} — link tracking continues, "
                 f"but no in-thread replies.",
@@ -101,7 +101,7 @@ def register_handlers(client: TelegramClient):
         elif command == "/on":
             bot_state.is_active = True
             logger.info("Admin %s toggled Cara ON.", sender.id)
-            await _broadcast_admins(
+            await broadcast_admins(
                 client,
                 f"Cara resumed by {_format_sender(sender)} — members will receive "
                 f"converted links again.",
