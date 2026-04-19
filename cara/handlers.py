@@ -1,6 +1,7 @@
 import logging
 
 from telethon import TelegramClient, events
+from telethon.tl.types import PeerUser
 
 from cara.config import settings
 from cara.link_service import (
@@ -34,6 +35,11 @@ async def broadcast_admins(client: TelegramClient, message: str) -> None:
 def register_handlers(client: TelegramClient):
     @client.on(events.NewMessage(chats=settings.discussion_group_id))
     async def handle_discussion_message(event: events.NewMessage.Event):
+        # Auto-forwarded channel broadcasts land in the discussion group with
+        # from_id = PeerChannel(linked_channel). Only act on real user messages.
+        if not isinstance(event.message.from_id, PeerUser):
+            return
+
         sender = await event.get_sender()
         if sender is None:
             return

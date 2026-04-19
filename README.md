@@ -5,6 +5,7 @@ Helpful Telegram assistant that lives in a channel's discussion group, automatic
 ## Features
 
 - **Affiliate link conversion** — When a non-admin, non-ignored member posts a Shopee link (domain contains `shopee.sg` or `shp.ee`) in the channel's linked discussion group, Cara converts it to an affiliate link via the Shopee Affiliate API and replies in-thread. Single links are returned as a bare URL; multiple links are returned as a numbered list in the order they were received.
+- **Channel broadcasts ignored** — Auto-forwarded channel posts that appear as thread headers in the discussion group are skipped; Cara only acts on messages whose `from_id` is a real user.
 - **Non-Shopee links ignored** — URLs that aren't on a Shopee domain are silently skipped. If a message contains no Shopee links at all, Cara does not reply.
 - **Non-product Shopee links** — Shopee video links (URLs containing an `smtt` query parameter) and Shopee links that the API can't convert are replaced inline with `Need product link to convert!` at their position in the numbered reply.
 - **Admin controls** — Any user in `ADMIN_LIST` can DM Cara `/off` to pause in-thread replies and `/on` to resume. Every state change is broadcast to all admins. Admins' own messages in the discussion group are ignored.
@@ -89,7 +90,7 @@ scripts/
 Cara interacts with a channel that has a linked discussion group:
 
 - **Channel posts** — Top-level announcements broadcast to the channel. Cara does not act on these.
-- **Discussion group** — Each channel post auto-forwards into a linked supergroup where members can reply. Cara listens for `NewMessage` events on this group (`DISCUSSION_GROUP_ID`) and responds to members' messages. Replying via `event.reply(...)` threads the response under the original message.
+- **Discussion group** — Each channel post auto-forwards into a linked supergroup where members can reply. Cara listens for `NewMessage` events on this group (`DISCUSSION_GROUP_ID`) and responds to members' messages. The auto-forwarded post itself arrives with `from_id` set to the linked channel (a `PeerChannel`), so Cara filters those out and only processes messages whose `from_id` is a `PeerUser`. Replying via `event.reply(...)` threads the response under the original message.
 - **Direct messages** — Admins DM Cara with `/on` and `/off` to control the reply state.
 
 Channel IDs in `-100...` format are used as-is with Telethon.
