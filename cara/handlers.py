@@ -78,7 +78,7 @@ def register_handlers(client: TelegramClient):
             reply_text = "\n".join(f"{i}. {entry}" for i, entry in enumerate(entries, 1))
 
         try:
-            await event.reply(reply_text)
+            await event.reply(reply_text, link_preview=False)
         except Exception as exc:
             logger.warning("Failed to reply in-thread: %r", exc)
             await broadcast_admins(
