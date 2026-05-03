@@ -16,6 +16,7 @@ dependencies = [
     # Uncomment once a functional release is available:
     # "toon-format>=0.2.0",
     "saapi>=0.2",
+    "pandas>=3.0.2",
 ]
 
 [project.scripts]

@@ -185,6 +185,27 @@ class ShopeeAffiliate:
     # Query
     # ------------------------------------------------------------------
 
+    def product_offer(
+        self,
+        *,
+        item_id: int,
+        shop_id: int,
+    ) -> dict | None:
+        """Look up a single product's offer data by ``itemId`` + ``shopId``.
+
+        Returns ``priceMin``, ``priceMax``, ``commissionRate`` and
+        ``productName`` for the first matching node, or ``None`` if the
+        product is not in the affiliate catalogue.
+        """
+        query = (
+            f'{{ productOfferV2(itemId: {item_id}, shopId: {shop_id},'
+            f' listType: 0, page: 1, limit: 1) {{'
+            f' nodes {{ itemId shopId productName priceMin priceMax commissionRate }}'
+            f' }} }}'
+        )
+        nodes = _post(self._url, self._auth, query)["productOfferV2"].get("nodes") or []
+        return nodes[0] if nodes else None
+
     def conversion_report(
         self,
         *,

@@ -6,6 +6,7 @@ from telethon.tl.types import PeerUser
 from cara.config import settings
 from cara.link_service import (
     URL_RE,
+    estimate_commission,
     generate_affiliate_link,
     is_shopee_link,
     is_shopee_video_link,
@@ -56,26 +57,37 @@ def register_handlers(client: TelegramClient):
             len(shopee_urls), sender.id, len(urls),
         )
 
-        entries: list[str] = []
+        # Each entry is (text, commission_or_None). Original order is preserved
+        # except the single highest-commission entry is moved to the end.
+        entries: list[tuple[str, float | None]] = []
+        multi = len(shopee_urls) > 1
         for url in shopee_urls:
             if is_shopee_video_link(url):
                 logger.info("Shopee video link %s — marking as non-product.", url)
-                entries.append(NOT_A_PRODUCT_LINK)
+                entries.append((NOT_A_PRODUCT_LINK, None))
                 continue
             try:
                 result = generate_affiliate_link(url)
-                entries.append(result["shortLink"])
+                short_link = result["shortLink"]
+                commission = estimate_commission(short_link) if multi else None
+                entries.append((short_link, commission))
             except Exception as exc:
                 logger.info("Shopee link %s failed conversion: %r", url, exc)
-                entries.append(NOT_A_PRODUCT_LINK)
+                entries.append((NOT_A_PRODUCT_LINK, None))
 
         if not bot_state.is_active:
             return
 
         if len(entries) == 1:
-            reply_text = entries[0]
+            reply_text = entries[0][0]
         else:
-            reply_text = "\n".join(f"{i}. {entry}" for i, entry in enumerate(entries, 1))
+            ranked = [(i, c) for i, (_, c) in enumerate(entries) if c is not None]
+            if ranked:
+                top_idx = max(ranked, key=lambda x: x[1])[0]
+                entries.append(entries.pop(top_idx))
+            reply_text = "\n".join(
+                f"{i}. {text}" for i, (text, _) in enumerate(entries, 1)
+            )
 
         try:
             await event.reply(reply_text, link_preview=False)
