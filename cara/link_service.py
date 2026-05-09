@@ -23,16 +23,34 @@ def _get_client() -> ShopeeAffiliate:
     return _client
 
 
-URL_RE = re.compile(r"https?://\S+")
+_URL_BODY = r"(?:[\w-]+\.)+[\w-]+(?:/\S*)?"
+URL_RE = re.compile(rf"(?:https?://|(?<![\w./@-])(?=[\w-]+\.))(?:{_URL_BODY})")
+_TRAILING_PUNCT = ".,;:!?)]}>\"'"
 
-SHOPEE_DOMAIN_RE = re.compile(r"://(?:[\w-]+\.)*(?:shopee\.sg|shp\.ee)/", re.IGNORECASE)
+SHOPEE_DOMAIN_RE = re.compile(
+    r"(?:^|[/.@\s])(?:[\w-]+\.)*(?:shopee\.sg|shp\.ee)/", re.IGNORECASE
+)
 SHOPEE_VIDEO_RE = re.compile(r"[?&]smtt=", re.IGNORECASE)
-SHOPEE_SHORT_DOMAIN_RE = re.compile(r"://(?:[\w-]+\.)*(?:shp\.ee|s\.shopee\.sg)/", re.IGNORECASE)
+SHOPEE_SHORT_DOMAIN_RE = re.compile(
+    r"(?:^|[/.@\s])(?:[\w-]+\.)*(?:shp\.ee|s\.shopee\.sg)/", re.IGNORECASE
+)
 # Final product pages take the form /product/{shopId}/{itemId} or
 # /opaanlp/{shopId}/{itemId} (affiliate landing page that JS-redirects to
 # /product/...). Both expose the IDs in the path directly, so we can short-circuit.
 SHOPEE_PRODUCT_ID_RE = re.compile(r"/(?:product|opaanlp)/(\d+)/(\d+)")
 SHOPEE_LIVE_DOMAIN_RE = re.compile(r"://live\.shopee\.", re.IGNORECASE)
+
+
+def extract_urls(text: str) -> list[str]:
+    """Find URLs in ``text``, prepending ``https://`` if the scheme is missing
+    and stripping common trailing sentence punctuation."""
+    results = []
+    for match in URL_RE.findall(text):
+        url = match.rstrip(_TRAILING_PUNCT)
+        if "://" not in url:
+            url = "https://" + url
+        results.append(url)
+    return results
 
 
 def is_shopee_link(url: str) -> bool:

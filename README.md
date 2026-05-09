@@ -4,7 +4,8 @@ Helpful Telegram assistant that lives in a channel's discussion group, automatic
 
 ## Features
 
-- **Affiliate link conversion** — When a non-admin, non-ignored member posts a Shopee link (domain contains `shopee.sg` or `shp.ee`) in the channel's linked discussion group, Cara converts it to an affiliate link via the Shopee Affiliate API and replies in-thread. Single links are returned as a bare URL; multiple links are returned as a numbered list in the order they were received.
+- **Affiliate link conversion** — When a non-admin, non-ignored member posts a Shopee link (domain contains `shopee.sg` or `shp.ee`, with or without an `https://` scheme) in the channel's linked discussion group, Cara converts it to an affiliate link via the Shopee Affiliate API and replies in-thread. Single links are returned as a bare URL; multiple links are returned as a numbered list with the highest-estimated-commission entry moved to the end.
+- **Link previews disabled** — Affiliate replies are sent with link previews suppressed.
 - **Channel broadcasts ignored** — Auto-forwarded channel posts that appear as thread headers in the discussion group are skipped; Cara only acts on messages whose `from_id` is a real user.
 - **Non-Shopee links ignored** — URLs that aren't on a Shopee domain are silently skipped. If a message contains no Shopee links at all, Cara does not reply.
 - **Non-product Shopee links** — Shopee video links (URLs containing an `smtt` query parameter) and Shopee links that the API can't convert are replaced inline with `Need product link to convert!` at their position in the numbered reply.
@@ -72,12 +73,12 @@ cara/
 ├── main.py          # Entry point — client setup and startup
 ├── config.py        # Environment-based settings (loads .env from project root)
 ├── handlers.py      # Telegram event handlers (link conversion, /on /off, admin broadcasts)
-├── link_service.py  # URL extraction and Shopee affiliate link generation
+├── link_service.py  # URL extraction/normalization, Shopee link detection, affiliate link generation, commission estimation
 ├── state.py         # Runtime state (active/paused toggle)
 └── shopeeAPI/       # Shopee Affiliate API client (no third-party wrapper)
     ├── __init__.py  # Public exports
     ├── auth.py      # SHA256 request signing
-    ├── client.py    # ShopeeAffiliate — generate_short_link, conversion_report
+    ├── client.py    # ShopeeAffiliate — generate_short_link, product_offer, conversion_report
     ├── countries.py # Country enum for regional API endpoints
     └── errors.py    # ShopeeAPIError and ShopeeErrorCode
 
@@ -99,18 +100,20 @@ Channel IDs in `-100...` format are used as-is with Telethon.
 
 URLs in a member's message are processed as follows:
 
-1. **Shopee filter** — only URLs whose domain contains `shopee.sg` or `shp.ee` are considered. Everything else is silently dropped. If no Shopee links remain, Cara doesn't reply.
-2. **Per-link processing** (preserving original order):
+1. **URL extraction** — both `https://`-prefixed and bare URLs (e.g. `s.shopee.sg/abc`) are extracted from message text; missing schemes are normalized to `https://` and trailing sentence punctuation is stripped.
+2. **Shopee filter** — only URLs whose domain contains `shopee.sg` or `shp.ee` are considered. Everything else is silently dropped. If no Shopee links remain, Cara doesn't reply.
+3. **Per-link processing** (preserving original order):
    - **Shopee video links** (`smtt=` query parameter) → `Need product link to convert!`
    - **Other Shopee URLs** → submitted to the Shopee Affiliate API; success yields the short link, any exception yields `Need product link to convert!`.
-3. **Reply composition:**
+4. **Reply composition:**
    - Exactly one entry → returned bare (link or placeholder).
-   - Multiple entries → numbered list in the original order, mixing affiliate links and placeholders.
+   - Multiple entries → numbered list, with the highest-commission link moved to the end; remaining entries keep their original order. Commission is only estimated when more than one link is present.
 
 Admins are only notified when Cara fails to *send* a reply (genuine Telegram-side errors), not on per-link conversion failures.
 
 ## TODO
 
+- [ ] Extract URLs from Telegram message entities (`MessageEntityUrl` / `MessageEntityTextUrl`) instead of regexing raw text, so hidden URLs behind formatted display text are also caught
 - [ ] Add TOON format support for structured LLM objects (awaiting `toon-format` PyPI package — currently a namespace reservation only, v0.1.0)
 - [ ] Build out LLM functionality with LangChain / LangGraph
 - [ ] Add persistence for bot state (survives restarts)

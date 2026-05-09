@@ -5,8 +5,8 @@ from telethon.tl.types import PeerUser
 
 from cara.config import settings
 from cara.link_service import (
-    URL_RE,
     estimate_commission,
+    extract_urls,
     generate_affiliate_link,
     is_shopee_link,
     is_shopee_video_link,
@@ -47,7 +47,7 @@ def register_handlers(client: TelegramClient):
         if sender.id in settings.admin_list or sender.id in settings.ignore_list:
             return
 
-        urls = URL_RE.findall(event.raw_text or "")
+        urls = extract_urls(event.raw_text or "")
         shopee_urls = [u for u in urls if is_shopee_link(u)]
         if not shopee_urls:
             return
